@@ -1,0 +1,13 @@
+[Unit]
+Description=mserve.py
+After=network.target
+
+[Service]
+User=cell
+Group=cell
+WorkingDirectory=/files/video
+ExecStart=/files/video/mserve.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
