@@ -51,12 +51,20 @@ if 'RAPIDAPI_KEY' in os.environ:
 # Python utils
 #
 
+def log(msg):
+    if sys.stdin.isatty():
+        sys.stderr.write(msg)
+    else:
+        with open('/var/log/mserve.log', 'a') as fd:
+            fd.write(msg)
+    
+
 # Configurable sql logging.
 g_debug_sql = False
 def log_sql(msg):
     global g_debug_sql
     if g_debug_sql:
-        sys.stderr.write(msg)
+        log(msg)
 
 
 # Safe array access.
@@ -327,14 +335,14 @@ def route(handler):
     if fn_dict:
         fn = fn_dict.get(method, None)
     if fn:
-        sys.stderr.write("Using static route %s\n" % url_path)
+        log("Using static route %s\n" % url_path)
         return fn
     for (method_i, label, regex, fn) in g_regex_routes:
         if method_i != method:
             continue
         m = regex.match(url_path)
         if m:
-            sys.stderr.write("Using regex route %s for %s\n" % (label, url_path))
+            log("Using regex route %s for %s\n" % (label, url_path))
             return fn
     return None
 
@@ -378,7 +386,7 @@ def handle_request(handler):
             db.close()
     now = datetime.datetime.now()
     elapsed = now - then
-    sys.stderr.write("  Elapsed: %0.3fms\n" % (elapsed.total_seconds() * 1000))
+    log("  Elapsed: %0.3fms\n" % (elapsed.total_seconds() * 1000))
 
 # OOP plumbing.
 class Handler(http.server.BaseHTTPRequestHandler):
@@ -506,7 +514,7 @@ def scan_dir(url_path, sort, tmdb_ids=None):
                             continue
                     triples.append([mtime, title, slug, metadata])
             except Exception as e:
-                sys.stderr.write("❌ scan_dir: %s, exception: %s\n" % (json_fpath, e))
+                log("❌ scan_dir: %s, exception: %s\n" % (json_fpath, e))
     if sort == "recent":
         triples.sort(reverse=True)
         triples = [(b, c, d) for (a, b, c, d) in triples]
@@ -529,7 +537,7 @@ def load_json(fpath):
             with open(fpath, 'rb') as fd:
                 return json.load(fd)
         except Exception as e:
-            sys.stderr.write("❌ load_json: exception: %s\n" % e)
+            log("❌ load_json: exception: %s\n" % e)
     return None
 
 
@@ -540,7 +548,7 @@ def load_file(fpath):
             with open(fpath, 'rb') as fd:
                 return fd.read()
         except Exception as e:
-            sys.stderr.write("❌ load_file: exception: %s\n" % e)
+            log("❌ load_file: exception: %s\n" % e)
     return None
 
 
@@ -652,7 +660,7 @@ def get_json_from_url(url, cache_fpath, headers, rate_limiter=None, cache_only=F
             return {}
         rate_limiter["counter"] += 1
     try:
-        sys.stderr.write("Fetching %s\n" % url)
+        log("Fetching %s\n" % url)
         req = urllib.request.Request(url)
         req.add_header('Accept', 'application/json')
         for pair in headers:
@@ -663,7 +671,7 @@ def get_json_from_url(url, cache_fpath, headers, rate_limiter=None, cache_only=F
             fd.write(data)
         return json.loads(data.decode('utf-8'))
     except Exception as e:
-        sys.stderr.write("❌ get_json_from_url: exception: %s\n" % e)
+        log("❌ get_json_from_url: exception: %s\n" % e)
         return {}
 
 
@@ -789,7 +797,7 @@ def get_file_from_url(url, cache_fpath, headers=[]):
     if cached_data:
         return cached_data
     try:
-        sys.stderr.write("Fetching %s\n" % url)
+        log("Fetching %s\n" % url)
         req = urllib.request.Request(url)
         for pair in headers:
             req.add_header(pair[0], pair[1])
@@ -799,7 +807,7 @@ def get_file_from_url(url, cache_fpath, headers=[]):
             fd.write(data)
         return data
     except Exception as e:
-        sys.stderr.write("❌ get_file_from_url: exception: %s\n" % e)
+        log("❌ get_file_from_url: exception: %s\n" % e)
         return None
 
 
@@ -1524,12 +1532,14 @@ if __name__ == "__main__":
             for arg in args:
                 slugify_file(arg, should_prompt)
     else:
+        if g_tmdb_token is None:
+            log("Notice: TMDB_TOKEN env var not set.\n")
         # otherwise start the server.
         init_db()
         port = 8000
         address_pair = ('', port)
         server = http.server.ThreadingHTTPServer(address_pair, Handler)
-        sys.stderr.write("Serving from directory %s\n" % g_media_dir)
-        sys.stderr.write("Routable IP address detected as %s\n" % g_ip_address)
-        sys.stderr.write("Listening on port %s\n" % port)
+        log("Serving from directory %s\n" % g_media_dir)
+        log("Routable IP address detected as %s\n" % g_ip_address)
+        log("Listening on port %s\n" % port)
         server.serve_forever()
