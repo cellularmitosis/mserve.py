@@ -69,30 +69,18 @@ def list_get(l, index, default=None):
 
 
 # Guess the outwardly-routable IP address.
+# Courtesy of ChatGPT
 def outward_ip_address():
-    # Some boxes resolve their hostname to 127.0.0.1 (or 127.0.1.1), which makes gethostbyname() useless.
-    # So first we try to use cmdline utils to get the routeable IP.
-    if sys.platform == 'linux':
-        try:
-            cmd = "ip route | grep '^default' | head -n1 | tr ' ' '\\n' | grep -A1 '^dev$' | tail -n1"
-            iface = subprocess.check_output(cmd, shell=True).decode().splitlines()[0]
-            cmd = "ip -f inet -json address show %s" % iface
-            jsn = subprocess.check_output(cmd, shell=True).decode()
-            ip = json.loads(jsn)[0]['addr_info'][0]['local']
-            return ip
-        except:
-            return socket.gethostbyname(socket.gethostname())
-    elif sys.platform == 'darwin':
-        try:
-            cmd = "netstat -rn -f inet | grep '^default' | head -n1"
-            iface = subprocess.check_output(cmd, shell=True).decode().splitlines()[0]
-            cmd = "ifconfig en0 | awk '{print $1 \" \" $2}' | grep '^inet ' | head -n1 | awk '{print $2}'"
-            ip = subprocess.check_output(cmd, shell=True).decode().splitlines()[0]
-            return ip
-        except:
-            return socket.gethostbyname(socket.gethostname())
-    else:
-        return socket.gethostbyname(socket.gethostname())
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        # The IP address here doesn't need to be reachable.
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+    except Exception:
+        ip = "127.0.0.1"
+    finally:
+        s.close()
+    return ip
 
 g_ip_address = outward_ip_address()
 
