@@ -4,5 +4,7 @@
 # ./combine-mp4-srt.sh in.mp4 in.srt out.mp4
 
 set -e
+set -x
 
-ffmpeg -i "$1" -i "$2" -c copy -c:s mov_text "$3"
+ffmpeg -i "$1" -i "$2" -c copy -c:s mov_text tmpfile.mp4
+mv tmpfile.mp4 "$1"

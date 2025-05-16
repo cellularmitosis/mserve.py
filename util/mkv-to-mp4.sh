@@ -1,5 +1,9 @@
 #!/bin/bash
 
 set -e -o pipefail
+set -x
 
-ffmpeg -i "$1" -c copy -c:s mov_text "$(basename $1 .mkv).mp4"
+for f in "$@" ; do
+    ffmpeg -i "$f" -c copy -c:s mov_text "$(basename "$f" .mkv).mp4"
+    rm "$f"
+done
