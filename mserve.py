@@ -1004,40 +1004,34 @@ def render_directory(handler, url_path, sort, tags, actor, director, genre, db):
         html = ""
         if tags is None:
             return html
-        
+       
+        def cast_links_helper(category_str):
+            html = ""
+            if category_str in tags and len(tags[category_str]) > 0:
+                pairs = []
+                for category_inst in tags[category_str]:
+                    full_name = category_inst
+                    last_name = category_inst.split()[-1]
+                    alias = category_inst
+                    if '|' in category_inst:
+                        full_name = category_inst.split('|')[0]
+                        alias = category_inst.split('|')[1]
+                    url = "%s?%s=%s&sort=chronological" % (category_str, url_path, urllib.parse.quote(full_name))
+                    anchor = '<a href="%s">%s</a>' % (url, alias)
+                    pair = (last_name, anchor)
+                    pairs.append(pair)
+                anchors = [pair[1] for pair in sorted(pairs)]
+                html += "<p>%s: [ %s ]</p>\n" % (category_str, ' | '.join(anchors))
+            return html
+
         # actor links.
-        if "actor" in tags and len(tags["actor"]) > 0:
-            pairs = []
-            for actor in tags["actor"]:
-                full_name = actor
-                last_name = actor.split()[-1]
-                alias = actor
-                if '|' in actor:
-                    full_name = actor.split('|')[0]
-                    alias = actor.split('|')[1]
-                url = "%s?actor=%s&sort=chronological" % (url_path, urllib.parse.quote(full_name))
-                anchor = '<a href="%s">%s</a>' % (url, alias)
-                pair = (last_name, anchor)
-                pairs.append(pair)
-            anchors = [pair[1] for pair in sorted(pairs)]
-            html += "<p>actor: [ %s ]</p>\n" % ' | '.join(anchors)
+        html += cast_links_helper("actor")
         
         # director links.
-        if "director" in tags and len(tags["director"]) > 0:
-            pairs = []
-            for director in tags["director"]:
-                full_name = director
-                last_name = director.split()[-1]
-                alias = director
-                if '|' in director:
-                    full_name = director.split('|')[0]
-                    alias = director.split('|')[1]
-                url = "%s?director=%s&sort=chronological" % (url_path, urllib.parse.quote(full_name))
-                anchor = '<a href="%s">%s</a>' % (url, alias)
-                pair = (last_name, anchor)
-                pairs.append(pair)
-            anchors = [pair[1] for pair in sorted(pairs)]
-            html += "<p>director: [ %s ]</p>\n" % ' | '.join(anchors)
+        html += cast_links_helper("director")
+        
+        # writer links.
+        html += cast_links_helper("writer")
         
         # genre links.
         anchors = []
