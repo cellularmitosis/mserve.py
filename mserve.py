@@ -164,6 +164,8 @@ def parse_GET_path(path_query):
         query_dict = {}
         for k, v in urllib.parse.parse_qs(query_part).items():
             query_dict[k] = v[-1]
+    # translate e.g. %20 into a space, etc.
+    path_part = urllib.parse.unquote(path_part)
     # drop any superfluous trailing slashes
     while path_part[-1] == '/' and len(path_part) > 1:
         path_part = path_part[:-1]
@@ -328,7 +330,7 @@ g_regex_routes = []
 
 # Find the function for a route.
 def route(handler):
-    url_path = handler.path.split('?')[0]
+    url_path, _ = parse_GET_path(handler.path)
     method = handler.command
     fn = None
     fn_dict = g_static_routes.get(url_path, None)
@@ -864,7 +866,7 @@ def player_endpoint(handler, db):
 add_regex_route(
     'GET',
     '/.../:file/player',
-    re.compile('^(\/[a-zA-Z0-9-_]+)*\/[a-zA-Z0-9-_]+\.[a-zA-Z0-9-_\.]+\/player$'),
+    re.compile('^(\/[a-zA-Z0-9-_ ]+)*\/[a-zA-Z0-9-_ ]+\.[a-zA-Z0-9-_\.]+\/player$'),
     player_endpoint
 )
 
@@ -933,13 +935,13 @@ def file_endpoint(handler, db):
 add_regex_route(
     'GET',
     '/.../:file',
-    re.compile('^(\/[a-zA-Z0-9-_]+)*\/[a-zA-Z0-9-_]+\.[a-zA-Z0-9-_\.]+$'),
+    re.compile('^(\/[a-zA-Z0-9-_ ]+)*\/[a-zA-Z0-9-_ ]+\.[a-zA-Z0-9-_\.]+$'),
     file_endpoint
 )
 add_regex_route(
     'HEAD',
     '/.../:file',
-    re.compile('^(\/[a-zA-Z0-9-_]+)*\/[a-zA-Z0-9-_]+\.[a-zA-Z0-9-_\.]+$'),
+    re.compile('^(\/[a-zA-Z0-9-_ ]+)*\/[a-zA-Z0-9-_ ]+\.[a-zA-Z0-9-_\.]+$'),
     file_endpoint
 )
 
@@ -977,7 +979,7 @@ def directory_endpoint(handler, db):
 add_regex_route(
     'GET',
     '/...',
-    re.compile('^((\/[a-zA-Z0-9-_]+)+|\/)$'),
+    re.compile('^((\/[a-zA-Z0-9-_ ]+)+|\/)$'),
     directory_endpoint
 )
 
